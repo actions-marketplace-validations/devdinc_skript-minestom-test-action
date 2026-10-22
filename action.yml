@@ -62,7 +62,7 @@ runs:
 
         # Download the runtime test framework directly.
         curl --fail --location --silent --show-error \
-          "https://raw.githubusercontent.com/devdinc/skripts/dev/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
+          "https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
           --output "$SCRIPTS_DIR/0/runtime-test-framework.sk"
 
         # Download Skript-Reflect, required by the framework.
