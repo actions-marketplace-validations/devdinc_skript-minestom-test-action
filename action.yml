@@ -1,3 +1,4 @@
+```yaml
 name: 'Skript Minestom Tests'
 description: 'Runs Skript runtime tests on Minestom'
 
@@ -10,6 +11,11 @@ inputs:
     description: 'Published Skript-MineStom Maven version'
     required: false
     default: '1.0.0-alpha.49'
+
+  timeout:
+    description: 'Maximum time to wait for runtime tests (for example, 1m, 30s, or 5m)'
+    required: false
+    default: '1m'
 
 runs:
   using: 'composite'
@@ -44,7 +50,7 @@ runs:
         set -euo pipefail
 
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
-        SCRIPTS_DIR="$SERVER_DIR/plugins/Skript/scripts"
+        SCRIPTS_DIR="$SERVER_DIR/Skript/scripts"
 
         mkdir -p "$SCRIPTS_DIR"
 
@@ -72,21 +78,16 @@ runs:
 
     - name: Run runtime tests
       shell: bash
-      continue-on-error: true
+      env:
+        TEST_TIMEOUT: ${{ inputs.timeout }}
       run: |
         set -euo pipefail
 
-        timeout --signal=TERM --kill-after=10s 1m \
+        timeout --signal=TERM --kill-after=10s "$TEST_TIMEOUT" \
           setsid python3 -u "$GITHUB_ACTION_PATH/run_tests.py" \
             "$RUNNER_TEMP/skript-minestom/skript-minestom.jar" \
             "$RUNNER_TEMP/skript-minestom"
 
-    # TEMPORARY: Find the actual Skript-Minestom scripts directory
-    - name: TEMPORARY - Debug script directories
-      shell: bash
-      run: |
-        echo "=== Directories ==="
-        find "$RUNNER_TEMP/skript-minestom" -type d | sort
-
         echo "=== Skript files ==="
         find "$RUNNER_TEMP/skript-minestom" -type f -name '*.sk' | sort
+```
