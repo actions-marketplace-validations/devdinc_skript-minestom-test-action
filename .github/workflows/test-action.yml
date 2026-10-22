@@ -20,22 +20,22 @@ jobs:
           mkdir -p tests
           cat > tests/arithmetic.sk <<'SKRIPT'
           # Arithmetic test cases for the runtime test framework.
+          test "arithmetic":
+              # Addition
+              assert (2 + 3) is 5
+              assert (10 + 0) is 10
 
-          # Addition
-          assert (2 + 3) is 5
-          assert (10 + 0) is 10
+              # Subtraction
+              assert (9 - 4) is 5
+              assert (7 - 7) is 0
 
-          # Subtraction
-          assert (9 - 4) is 5
-          assert (7 - 7) is 0
+              # Multiplication
+              assert (6 * 7) is 42
+              assert (8 * 0) is 0
 
-          # Multiplication
-          assert (6 * 7) is 42
-          assert (8 * 0) is 0
-
-          # Division
-          assert (20 / 4) is 5
-          assert (9 / 3) is 3
+              # Division
+              assert (20 / 4) is 5
+              assert (9 / 3) is 3
           SKRIPT
 
       - name: Run Skript Minestom tests
