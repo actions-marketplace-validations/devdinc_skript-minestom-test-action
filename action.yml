@@ -30,7 +30,7 @@ runs:
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
         mkdir -p "$SERVER_DIR"
 
-        URL="https://maven.hapily.me/snapshots/com/github/hapily04/skriptminestom/skript-minestom/${VERSION}/skript-minestom-${VERSION}.jar"
+        URL="https://maven.hapily.me/snapshots/com/github/hapily04/skript-minestom/${VERSION}/skript-minestom-${VERSION}.jar"
 
         curl --fail --location --silent --show-error \
           "$URL" \
