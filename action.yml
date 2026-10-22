@@ -1,14 +1,18 @@
-name: Skript Minestom Tests
-description: Run Skript-MineStom runtime tests using the published JAR
+name: 'Skript Minestom Tests'
+description: 'Runs Skript runtime tests on Minestom'
 
 inputs:
+  test_script_directory:
+    description: 'Directory containing the Skript test scripts'
+    required: true
+
   version:
-    description: Published Skript-MineStom version
+    description: 'Published Skript-MineStom Maven version'
     required: false
-    default: 1.0.0-alpha.49
+    default: '1.0.0-alpha.49'
 
 runs:
-  using: composite
+  using: 'composite'
   steps:
     - name: Set up Java
       uses: actions/setup-java@v4
@@ -23,26 +27,32 @@ runs:
       run: |
         set -euo pipefail
 
+        SERVER_DIR="$RUNNER_TEMP/skript-minestom"
+        mkdir -p "$SERVER_DIR"
+
         URL="https://maven.hapily.me/snapshots/com/github/hapily04/skriptminestom/skript-minestom/${VERSION}/skript-minestom-${VERSION}.jar"
 
-        mkdir -p "$RUNNER_TEMP/skript-minestom"
         curl --fail --location --silent --show-error \
           "$URL" \
-          --output "$RUNNER_TEMP/skript-minestom/skript-minestom.jar"
+          --output "$SERVER_DIR/skript-minestom.jar"
 
-    - name: Prepare test scripts
+    - name: Prepare Skript and test scripts
       shell: bash
+      env:
+        TEST_SCRIPT_DIRECTORY: ${{ inputs.test_script_directory }}
       run: |
         set -euo pipefail
 
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
-        mkdir -p "$SERVER_DIR/plugins/Skript/scripts"
+        SCRIPTS_DIR="$SERVER_DIR/plugins/Skript/scripts"
+
+        mkdir -p "$SCRIPTS_DIR"
 
         curl --fail --location --silent --show-error \
           "https://raw.githubusercontent.com/miberss/pacskage/HEAD/package.sk" \
-          --output "$SERVER_DIR/plugins/Skript/scripts/package.sk"
+          --output "$SCRIPTS_DIR/package.sk"
 
-        cat > "$SERVER_DIR/plugins/Skript/scripts/ci-install-runtime-test-framework.sk" <<'SKRIPT'
+        cat > "$SCRIPTS_DIR/ci-install-runtime-test-framework.sk" <<'SKRIPT'
         on load:
             if {ci::runtime-test-framework::reload-done} is true:
                 stop
@@ -53,10 +63,18 @@ runs:
             execute console command "skript reload scripts"
         SKRIPT
 
+        if [ ! -d "$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY" ]; then
+          echo "::error::Test directory not found: $TEST_SCRIPT_DIRECTORY"
+          exit 1
+        fi
+
+        cp -R "$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY/." "$SCRIPTS_DIR/"
+
     - name: Run runtime tests
       shell: bash
       run: |
         set -euo pipefail
-        python3 "${{ github.action_path }}/run_tests.py" \
+
+        python3 "$GITHUB_ACTION_PATH/run_tests.py" \
           "$RUNNER_TEMP/skript-minestom/skript-minestom.jar" \
           "$RUNNER_TEMP/skript-minestom"
