@@ -71,9 +71,10 @@ runs:
                 stop
 
             execute console command "package install https://github.com/devdinc/skripts/#scripts/utils/runtime-test-framework"
-            
 
             set {ci::runtime-test-framework::reload-done} to true
+            execute console command "skript reload scripts"
+            execute console command "skript enable tests/"
             execute console command "skript reload scripts"
         SKRIPT
 
@@ -82,7 +83,7 @@ runs:
           exit 1
         fi
 
-        cp -R "$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY/." "$SCRIPTS_DIR/"
+        cp -R "$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY/." "$SCRIPTS_DIR/-tests/"
 
     - name: Run runtime tests
       shell: bash
