@@ -50,13 +50,21 @@ runs:
 
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
         SCRIPTS_DIR="$SERVER_DIR/Skript/scripts"
+        PLUGINS_DIR="$SERVER_DIR"
 
-        mkdir -p "$SCRIPTS_DIR"
+        mkdir -p "$SCRIPTS_DIR" "$PLUGINS_DIR"
 
+        # Download the Skript-Minestom-compatible Pacskage script.
         curl --fail --location --silent --show-error \
-          "https://raw.githubusercontent.com/miberss/pacskage/HEAD/package.sk" \
+          "https://raw.githubusercontent.com/miberss/pacskage/refs/heads/skript-minestom/package.sk" \
           --output "$SCRIPTS_DIR/package.sk"
 
+        # Download Skript-Reflect.
+        curl --fail --location --silent --show-error \
+          "https://github.com/SkriptLang/skript-reflect/releases/download/v2.6.3/skript-reflect-2.6.3.jar" \
+          --output "$PLUGINS_DIR/skript-reflect-2.6.3.jar"
+
+        # Install the runtime test framework on load.
         cat > "$SCRIPTS_DIR/ci-install-runtime-test-framework.sk" <<'SKRIPT'
         on load:
             if {ci::runtime-test-framework::reload-done} is true:
