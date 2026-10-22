@@ -5,7 +5,7 @@ test "assert false with unset variable":
     assert false: {_none} is set
 
 test "assert condition passes":
-    assert {_value} is not set to fail
+    assert true: {_value} is not set
 
 test "assert true with explicit condition":
     set {_value} to true
@@ -16,7 +16,7 @@ test "assert false with explicit condition":
     assert false: {_value} is true
 
 test "assert condition to pass":
-    assert {_value} is not set to fail
+    assert true: {_value} is not set
 
 test "test errors initially empty":
     assert true: size of test errors is 0
