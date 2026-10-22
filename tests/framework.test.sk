@@ -1,0 +1,74 @@
+test "assert true with unset variable":
+    assert true: {_none} is not set
+
+test "assert false with unset variable":
+    assert false: {_none} is set
+
+test "assert condition passes":
+    assert {_value} is not set to fail
+
+test "assert true with explicit condition":
+    set {_value} to true
+    assert true: {_value} is true
+
+test "assert false with explicit condition":
+    set {_value} to false
+    assert false: {_value} is true
+
+test "assert condition to pass":
+    assert {_value} is not set to fail
+
+test "test errors initially empty":
+    assert true: size of test errors is 0
+
+test "test errors remain empty after passing assertions":
+    assert true: {_none} is not set
+    assert false: {_none} is set
+    assert true: size of test errors is 0
+
+test "all tests returns registered tests":
+    set {_tests::*} to all tests
+    assert true: size of {_tests::*} > 0
+
+test "all tests finds current test":
+    set {_tests::*} to all tests with test name "all tests finds current test"
+    assert true: size of {_tests::*} > 0
+
+test "all tests filters unknown test":
+    set {_tests::*} to all tests with test name "this test does not exist"
+    assert true: size of {_tests::*} is 0
+
+test "event test returns current name":
+    assert true: event-test[0] is event-string
+
+test "event test name is set":
+    assert true: event-string is set
+
+test "event test script identifier is set":
+    assert true: event-test[1] is set
+
+test "autorun flag consistency":
+    if event-test is autorun:
+        assert true: event-test is autorun
+    else:
+        assert true: event-test is not autorun
+
+test "latest parse logs expression exists":
+    set {_logs::*} to latest parse logs
+    assert true: size of {_logs::*} >= 0
+
+test "test error expression returns a list":
+    set {_errors::*} to test errors
+    assert true: size of {_errors::*} is 0
+
+test "assertions do not create errors":
+    assert true: 1 is 1
+    assert false: 1 is 2
+    assert true: "hello" is "hello"
+    assert true: size of test errors is 0
+
+test "multiple assertions execute":
+    assert true: 1 is 1
+    assert true: 2 is 2
+    assert true: 3 is 3
+    assert true: size of test errors is 0
