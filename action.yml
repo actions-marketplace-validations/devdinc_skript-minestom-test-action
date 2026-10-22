@@ -75,9 +75,10 @@ runs:
       run: |
         set -euo pipefail
 
-        python3 "$GITHUB_ACTION_PATH/run_tests.py" \
-          "$RUNNER_TEMP/skript-minestom/skript-minestom.jar" \
-          "$RUNNER_TEMP/skript-minestom"
+        timeout --signal=TERM --kill-after=10s 1m \
+          setsid python3 -u "$GITHUB_ACTION_PATH/run_tests.py" \
+            "$RUNNER_TEMP/skript-minestom/skript-minestom.jar" \
+            "$RUNNER_TEMP/skript-minestom"
 
     # TEMPORARY: Find the actual Skript-Minestom scripts directory
     - name: TEMPORARY - Debug script directories
