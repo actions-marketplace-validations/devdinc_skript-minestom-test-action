@@ -1,0 +1,47 @@
+```yaml
+name: Test Skript Minestom Action
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create arithmetic tests
+        shell: bash
+        run: |
+          mkdir -p tests
+          cat > tests/arithmetic.sk <<'SKRIPT'
+          # Arithmetic test cases for the runtime test framework.
+
+          # Addition
+          assert (2 + 3) is 5
+          assert (10 + 0) is 10
+
+          # Subtraction
+          assert (9 - 4) is 5
+          assert (7 - 7) is 0
+
+          # Multiplication
+          assert (6 * 7) is 42
+          assert (8 * 0) is 0
+
+          # Division
+          assert (20 / 4) is 5
+          assert (9 / 3) is 3
+          SKRIPT
+
+      - name: Run Skript Minestom tests
+        uses: ./
+        with:
+          version: 1.0.0-alpha.49
+          test-dir: tests
+```
