@@ -1,4 +1,3 @@
-```yaml
 name: Test Skript Minestom Action
 
 on:
@@ -43,5 +42,4 @@ jobs:
         uses: ./
         with:
           version: 1.0.0-alpha.49
-          test-dir: tests
-```
+          test_script_directory: tests
