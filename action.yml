@@ -50,7 +50,7 @@ runs:
 
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
         SCRIPTS_DIR="$SERVER_DIR/Skript/scripts"
-        PLUGINS_DIR="$SERVER_DIR/plugins"
+        PLUGINS_DIR="$SERVER_DIR/Skript/addons"
         TEST_SOURCE="$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY"
 
         if [ ! -d "$TEST_SOURCE" ]; then
@@ -58,12 +58,12 @@ runs:
           exit 1
         fi
 
-        mkdir -p "$SCRIPTS_DIR/tests" "$PLUGINS_DIR"
+        mkdir -p "$SCRIPTS_DIR/tests" "$PLUGINS_DIR" "$SCRIPTS_DIR/0"
 
         # Download the runtime test framework directly.
         curl --fail --location --silent --show-error \
           "https://raw.githubusercontent.com/devdinc/skripts/dev/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
-          --output "$SCRIPTS_DIR/runtime-test-framework.sk"
+          --output "$SCRIPTS_DIR/0/runtime-test-framework.sk"
 
         # Download Skript-Reflect, required by the framework.
         curl --fail --location --silent --show-error \
