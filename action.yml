@@ -1,4 +1,3 @@
-```yaml
 name: 'Skript Minestom Tests'
 description: 'Runs Skript runtime tests on Minestom'
 
@@ -87,7 +86,3 @@ runs:
           setsid python3 -u "$GITHUB_ACTION_PATH/run_tests.py" \
             "$RUNNER_TEMP/skript-minestom/skript-minestom.jar" \
             "$RUNNER_TEMP/skript-minestom"
-
-        echo "=== Skript files ==="
-        find "$RUNNER_TEMP/skript-minestom" -type f -name '*.sk' | sort
-```
