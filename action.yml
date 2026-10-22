@@ -50,7 +50,7 @@ runs:
 
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
         SCRIPTS_DIR="$SERVER_DIR/Skript/scripts"
-        PLUGINS_DIR="$SERVER_DIR"
+        PLUGINS_DIR="$SERVER_DIR/Skript/addons"
 
         mkdir -p "$SCRIPTS_DIR" "$PLUGINS_DIR"
 
@@ -65,14 +65,17 @@ runs:
           --output "$PLUGINS_DIR/skript-reflect-2.6.3.jar"
 
         # Install the runtime test framework on load.
-        cat > "$SCRIPTS_DIR/ci-install-runtime-test-framework.sk" <<'SKRIPT'
+        cat > "$SCRIPTS_DIR/-ci-install-runtime-test-framework.sk" <<'SKRIPT'
         on load:
             if {ci::runtime-test-framework::reload-done} is true:
                 stop
 
             execute console command "package install https://github.com/devdinc/skripts/#scripts/utils/runtime-test-framework"
+            
 
             set {ci::runtime-test-framework::reload-done} to true
+            execute console command "skript reload scripts"
+            execute console command "skript enable ci-install-runtime-test-framework.sk"
             execute console command "skript reload scripts"
         SKRIPT
 
