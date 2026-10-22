@@ -14,7 +14,7 @@ inputs:
   timeout:
     description: 'Maximum time to wait for runtime tests (for example, 1m, 30s, or 5m)'
     required: false
-    default: '1m'
+    default: '45s'
 
 runs:
   using: 'composite'
@@ -73,9 +73,12 @@ runs:
             execute console command "package install https://github.com/devdinc/skripts/#scripts/utils/runtime-test-framework"
 
             set {ci::runtime-test-framework::reload-done} to true
-            execute console command "skript reload scripts"
-            execute console command "skript enable tests/"
-            execute console command "skript reload scripts"
+            loop all scripts:
+                reload script "%loop-value%"
+            loop all disabled scripts:
+                enable script "%loop-value%"
+            loop all scripts:
+                reload script "%loop-value%"
         SKRIPT
 
         if [ ! -d "$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY" ]; then
