@@ -146,5 +146,3 @@ Increase the `timeout` input if runtime startup or test execution takes longer t
 ### Tests report failures
 
 Review the runtime output for `TEST FAILURE` messages. The framework records failed assertions and explicit test failures, and the runner reports the number of successful and failed tests.
-
-Add the license applicable to your project here.
