@@ -60,17 +60,26 @@ runs:
 
         mkdir -p "$SCRIPTS_DIR/tests" "$PLUGINS_DIR" "$SCRIPTS_DIR/0"
 
-        # Download the runtime test framework directly.
+        # Download independent dependencies concurrently.
         curl --fail --location --silent --show-error \
           "https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
-          --output "$SCRIPTS_DIR/0/runtime-test-framework.sk"
+          --output "$SCRIPTS_DIR/0/runtime-test-framework.sk" &
+        FRAMEWORK_PID=$!
 
-        # Download Skript-Reflect, required by the framework.
         curl --fail --location --silent --show-error \
           "https://github.com/SkriptLang/skript-reflect/releases/download/v2.6.3/skript-reflect-2.6.3.jar" \
-          --output "$PLUGINS_DIR/skript-reflect-2.6.3.jar"
+          --output "$PLUGINS_DIR/skript-reflect-2.6.3.jar" &
+        REFLECT_PID=$!
 
-        # Copy the user's tests into the scripts directory.
+        STATUS=0
+        wait "$FRAMEWORK_PID" || STATUS=1
+        wait "$REFLECT_PID" || STATUS=1
+
+        if [ "$STATUS" -ne 0 ]; then
+          echo "::error::Failed to download test dependencies"
+          exit 1
+        fi
+
         cp -R "$TEST_SOURCE/." "$SCRIPTS_DIR/tests/"
 
         echo "=== Prepared Skript files ==="
