@@ -1,15 +1,17 @@
 # Skript Minestom Tests
 
-A GitHub Action for running Skript runtime tests on Minestom using the published Skript-Minestom runtime and a lightweight test framework.
+A GitHub Action for running Skript runtime tests on Minestom. It supports downloading a published Skript-Minestom JAR or building the runtime from source before running tests.
 
 ## Features
 
 - Runs Skript test scripts on Minestom.
-- Supports configurable test script directories.
+- Supports downloading a published runtime or building from a Git repository.
+- Supports selecting a published version or source Git reference.
 - Downloads the runtime test framework automatically.
 - Installs Skript-Reflect, required by the framework.
-- Supports configurable runtime versions and timeouts.
+- Supports configurable test script directories and runtime timeouts.
 - Stops execution if the runtime exceeds the configured timeout.
+- Uses Java 25.
 
 ## Usage
 
@@ -31,18 +33,77 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Skript tests
-        uses: devdinc/skript-minestom-test-action
+        uses: devdinc/skript-minestom-test-action@main
         with:
           test_script_directory: tests
 ```
+
+By default, the action downloads the latest published version available in the configured Maven snapshot repository.
 
 ## Inputs
 
 | Input | Required | Default | Description |
 |---|---|---|---|
-| `test_script_directory` | Yes | — | Directory containing Skript test scripts, relative to the calling repository's root or an absolute path. |
-| `version` | No | `1.0.0-alpha.49` | Published Skript-Minestom Maven version to download. |
+| `mode` | No | `download` | Runtime source: `download` or `build`. |
+| `version` | No | `latest` | Published Skript-Minestom version to download. Used only in `download` mode. |
+| `repository` | No | `https://github.com/hapily04/skript-minestom.git` | Git repository to clone in `build` mode. |
+| `ref` | No | — | Branch, tag, or commit to build. Used only in `build` mode. |
+| `test_script_directory` | Yes | — | Directory containing Skript test scripts, relative to the calling repository's root. |
 | `timeout` | No | `45s` | Maximum runtime duration, such as `30s`, `1m`, or `5m`. |
+
+## Runtime Modes
+
+### Download a published runtime
+
+This is the default mode. The action downloads a published JAR from the configured Maven snapshot repository.
+
+```yaml
+- name: Run Skript tests
+  uses: devdinc/skript-minestom-test-action
+  with:
+    mode: download
+    version: latest
+    test_script_directory: tests
+```
+
+To use a specific published version, replace `latest` with the desired version:
+
+```yaml
+- name: Run Skript tests
+  uses: devdinc/skript-minestom-test-action@main
+  with:
+    mode: download
+    version: 1.0.0-alpha.49
+    test_script_directory: tests
+```
+
+The `latest` version is resolved from Maven metadata. It reflects the latest version published in that repository, which may differ from the newest version in the source repository.
+
+### Build from source
+
+Use `build` mode to clone the Skript-Minestom source repository and build its runnable Shadow JAR.
+
+```yaml
+- name: Run Skript tests
+  uses: devdinc/skript-minestom-test-action@main
+  with:
+    mode: build
+    test_script_directory: tests
+```
+
+To build a specific branch, tag, or commit:
+
+```yaml
+- name: Run Skript tests
+  uses: devdinc/skript-minestom-test-action@main
+  with:
+    mode: build
+    repository: https://github.com/hapily04/skript-minestom.git
+    ref: main
+    test_script_directory: tests
+```
+
+The action runs the Gradle task `:minestom:shadowJar` and uses the resulting runnable JAR to execute the tests. The source repository must be buildable in the GitHub Actions environment, including successful resolution of its dependencies.
 
 ## Test Directory
 
@@ -62,14 +123,14 @@ Configure another directory using the `test_script_directory` input:
 
 ```yaml
 - name: Run tests
-  uses: devdinc/skript-minestom-test-action
+  uses: devdinc/skript-minestom-test-action@main
   with:
     test_script_directory: skript-tests
 ```
 
 The action copies the contents of the configured directory into the runtime's Skript scripts directory under `tests/`, preserving nested directories.
 
-**Note:** The test directory is read from the repository running the workflow, not automatically from the action's repository.
+**Note:** The test directory is read from the repository running the workflow, not automatically from the action's repository. Ensure the workflow checks out the calling repository before running the action.
 
 ## Test Framework
 
@@ -99,7 +160,7 @@ assert false: <condition>
 assert <condition> to fail
 ```
 
-The framework also supports non-halting assertions and failure effects.
+The framework also supports non-halting assertions and failure effects:
 
 - `without halting assert ...` records a failure and continues execution.
 - `fail test` records a test failure and halts by default.
@@ -109,31 +170,39 @@ A test that records a failure is counted as failed by the runner, even if the te
 
 ## Dependencies
 
-The action automatically downloads:
+The action automatically downloads or prepares the following:
 
-- Skript-Minestom from the configured Maven version.
-- Skript-Reflect `2.6.3`.
-- The runtime test framework from the `devdinc/skripts` repository.
+- **Skript-Minestom:** downloaded from the configured Maven repository in `download` mode, or built from source in `build` mode.
+- **Skript-Reflect 2.6.3:** downloaded and installed as an addon.
+- **Runtime test framework:** downloaded from the `devdinc/skripts` repository.
 
-It also configures Java 25 using `actions/setup-java@v4`.
+The action configures Java 25 using `actions/setup-java@v4`.
 
 ## Timeout
 
-The default timeout is 45 seconds. Override it when tests need more time:
+The default timeout is 45 seconds. Override it when runtime startup or test execution needs more time:
 
 ```yaml
 - name: Run tests
-  uses: devdinc/skripts/minestom@main
+  uses: devdinc/skript-minestom-test-action@main
   with:
     test_script_directory: tests
     timeout: 2m
 ```
+
+The timeout applies to the runtime test runner. If it is exceeded, the action terminates the process and fails the step.
 
 ## Troubleshooting
 
 ### Test directory not found
 
 Ensure `test_script_directory` points to a directory in the calling repository and that the workflow checks out the repository first.
+
+### Build fails in `build` mode
+
+The source build requires Gradle and all runtime dependencies to resolve successfully. A repository outage, TLS handshake failure, or unavailable snapshot dependency can prevent the Shadow JAR from being produced.
+
+Check the Gradle output for the dependency and repository that failed to resolve.
 
 ### Tests fail to parse
 
