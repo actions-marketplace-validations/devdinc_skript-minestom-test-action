@@ -33,6 +33,18 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Validate mode
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+      run: |
+        set -euo pipefail
+
+        if [[ "$MODE" != "download" && "$MODE" != "build" ]]; then
+          echo "::error::Invalid mode '$MODE'. Use 'download' or 'build'."
+          exit 1
+        fi
+
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
@@ -43,7 +55,7 @@ runs:
       if: inputs.mode == 'download'
       shell: bash
       env:
-        VERSION: ${{ inputs.version }}
+        VERSION_INPUT: ${{ inputs.version }}
       run: |
         set -euo pipefail
 
@@ -51,9 +63,10 @@ runs:
         mkdir -p "$SERVER_DIR"
 
         BASE_URL="https://maven.hapily.me/snapshots/com/github/hapily04/skript-minestom"
+        VERSION="$VERSION_INPUT"
 
-        if [ "$VERSION" = "latest" ]; then
-          VERSION=$(curl --fail --location --silent --show-error \
+        if [[ "$VERSION" == "latest" ]]; then
+          VERSION="$(curl --fail --location --silent --show-error \
             "$BASE_URL/maven-metadata.xml" |
             python3 -c '
         import sys
@@ -66,7 +79,7 @@ runs:
             sys.exit("ERROR: No latest version found in Maven metadata")
 
         print(version)
-        ')
+        ')"
         fi
 
         URL="$BASE_URL/$VERSION/skript-minestom-$VERSION.jar"
@@ -76,6 +89,11 @@ runs:
         curl --fail --location --silent --show-error \
           "$URL" \
           --output "$SERVER_DIR/skript-minestom.jar"
+
+        if [[ ! -s "$SERVER_DIR/skript-minestom.jar" ]]; then
+          echo "::error::Downloaded JAR is missing or empty"
+          exit 1
+        fi
 
     - name: Build Skript-Minestom
       if: inputs.mode == 'build'
@@ -89,53 +107,67 @@ runs:
         SOURCE_DIR="$RUNNER_TEMP/skript-minestom-source"
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
 
-        if [ "$REPOSITORY" = "" ]; then
+        if [[ -z "$REPOSITORY" ]]; then
           echo "::error::Repository URL cannot be empty"
           exit 1
         fi
 
+        rm -rf "$SOURCE_DIR"
         git clone --recurse-submodules "$REPOSITORY" "$SOURCE_DIR"
 
         cd "$SOURCE_DIR"
 
-        if [ -n "$REF" ]; then
+        if [[ -n "$REF" ]]; then
           git fetch origin "$REF"
           git checkout --detach FETCH_HEAD
           git submodule update --init --recursive
         fi
 
-        chmod +x ./gradlew
-        ./gradlew --no-daemon build
+        if [[ ! -f "./gradlew" ]]; then
+          echo "::error::Gradle wrapper not found in source repository"
+          exit 1
+        fi
 
-        mkdir -p "$SERVER_DIR"
+        chmod +x ./gradlew
+
+        # Build only the runnable Shadow JAR.
+        ./gradlew --no-daemon :minestom:shadowJar
+
+        # The minestom module publishes its Shadow JAR as skript-minestom.
+        JAR_DIR="minestom/build/libs"
+
+        if [[ ! -d "$JAR_DIR" ]]; then
+          echo "::error::Expected output directory '$JAR_DIR' was not created"
+          find . -type f -path '*/build/libs/*.jar' -print || true
+          exit 1
+        fi
 
         mapfile -t JARS < <(
-          find build/libs -maxdepth 1 -type f \
-            -name 'skript-minestom*.jar' \
+          find "$JAR_DIR" -maxdepth 1 -type f \
+            -name 'skript-minestom-*.jar' \
             ! -name '*-sources.jar' \
             ! -name '*-javadoc.jar' \
             ! -name '*-plain.jar' \
             | sort
         )
 
-        if [ "${#JARS[@]}" -ne 1 ]; then
-          echo "::error::Expected exactly one runnable Skript-Minestom JAR in build/libs; found ${#JARS[@]}"
-          find build/libs -maxdepth 1 -type f -name '*.jar' -print || true
+        if [[ "${#JARS[@]}" -ne 1 ]]; then
+          echo "::error::Expected exactly one Skript-Minestom Shadow JAR in $JAR_DIR; found ${#JARS[@]}"
+          echo "JAR files found in the output directory:"
+          find "$JAR_DIR" -maxdepth 1 -type f -name '*.jar' -print || true
           exit 1
         fi
 
+        mkdir -p "$SERVER_DIR"
         cp "${JARS[0]}" "$SERVER_DIR/skript-minestom.jar"
-        echo "Built Skript-Minestom from $REPOSITORY"
 
-    - name: Validate mode
-      shell: bash
-      env:
-        MODE: ${{ inputs.mode }}
-      run: |
-        if [ "$MODE" != "download" ] && [ "$MODE" != "build" ]; then
-          echo "::error::Invalid mode '$MODE'. Use 'download' or 'build'."
+        if [[ ! -s "$SERVER_DIR/skript-minestom.jar" ]]; then
+          echo "::error::Built JAR is missing or empty"
           exit 1
         fi
+
+        echo "Built Skript-Minestom from $REPOSITORY"
+        echo "Artifact: ${JARS[0]}"
 
     - name: Prepare Skript and test scripts
       shell: bash
@@ -149,8 +181,13 @@ runs:
         PLUGINS_DIR="$SERVER_DIR/Skript/addons"
         TEST_SOURCE="$GITHUB_WORKSPACE/$TEST_SCRIPT_DIRECTORY"
 
-        if [ ! -d "$TEST_SOURCE" ]; then
+        if [[ ! -d "$TEST_SOURCE" ]]; then
           echo "::error::Test directory not found: $TEST_SCRIPT_DIRECTORY"
+          exit 1
+        fi
+
+        if [[ ! -s "$SERVER_DIR/skript-minestom.jar" ]]; then
+          echo "::error::Skript-Minestom JAR not found or empty"
           exit 1
         fi
 
@@ -170,7 +207,7 @@ runs:
         wait "$FRAMEWORK_PID" || STATUS=1
         wait "$REFLECT_PID" || STATUS=1
 
-        if [ "$STATUS" -ne 0 ]; then
+        if [[ "$STATUS" -ne 0 ]]; then
           echo "::error::Failed to download test dependencies"
           exit 1
         fi
