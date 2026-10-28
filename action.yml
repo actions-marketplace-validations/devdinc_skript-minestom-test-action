@@ -7,9 +7,9 @@ inputs:
     required: true
 
   version:
-    description: 'Published Skript-Minestom Maven version'
+    description: 'Published Skript-Minestom Maven version, or latest'
     required: false
-    default: '1.0.0-alpha.49'
+    default: 'latest'
 
   timeout:
     description: 'Maximum time to wait for runtime tests (for example, 1m, 30s, or 5m)'
@@ -35,7 +35,28 @@ runs:
         SERVER_DIR="$RUNNER_TEMP/skript-minestom"
         mkdir -p "$SERVER_DIR"
 
-        URL="https://maven.hapily.me/snapshots/com/github/hapily04/skript-minestom/${VERSION}/skript-minestom-${VERSION}.jar"
+        BASE_URL="https://maven.hapily.me/snapshots/com/github/hapily04/skript-minestom"
+
+        if [ "$VERSION" = "latest" ]; then
+          VERSION=$(curl --fail --location --silent --show-error \
+            "$BASE_URL/maven-metadata.xml" |
+            python3 -c '
+        import sys
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(sys.stdin).getroot()
+        version = root.findtext("./versioning/latest")
+
+        if not version:
+            sys.exit("ERROR: No latest version found in Maven metadata")
+
+        print(version)
+        ')
+        fi
+
+        URL="$BASE_URL/$VERSION/skript-minestom-$VERSION.jar"
+
+        echo "Downloading Skript-Minestom version $VERSION"
 
         curl --fail --location --silent --show-error \
           "$URL" \
