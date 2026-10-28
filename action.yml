@@ -2,14 +2,28 @@ name: 'Skript Minestom Tests'
 description: 'Runs Skript runtime tests on Minestom'
 
 inputs:
+  mode:
+    description: 'Whether to download a published JAR or build from source (download or build)'
+    required: false
+    default: 'download'
+
+  version:
+    description: 'Published Skript-Minestom Maven version, or latest (download mode only)'
+    required: false
+    default: 'latest'
+
+  repository:
+    description: 'Git repository URL for Skript-Minestom (build mode only)'
+    required: false
+    default: 'https://github.com/hapily04/skript-minestom.git'
+
+  ref:
+    description: 'Git reference to build (branch, tag, or commit; build mode only)'
+    required: false
+
   test_script_directory:
     description: 'Directory containing the Skript test scripts'
     required: true
-
-  version:
-    description: 'Published Skript-Minestom Maven version, or latest'
-    required: false
-    default: 'latest'
 
   timeout:
     description: 'Maximum time to wait for runtime tests (for example, 1m, 30s, or 5m)'
@@ -26,6 +40,7 @@ runs:
         java-version: '25'
 
     - name: Download Skript-Minestom
+      if: inputs.mode == 'download'
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -56,11 +71,71 @@ runs:
 
         URL="$BASE_URL/$VERSION/skript-minestom-$VERSION.jar"
 
-        echo "Downloading Skript-Minestom version $VERSION"
+        echo "Downloading Skript-Minestom $VERSION"
 
         curl --fail --location --silent --show-error \
           "$URL" \
           --output "$SERVER_DIR/skript-minestom.jar"
+
+    - name: Build Skript-Minestom
+      if: inputs.mode == 'build'
+      shell: bash
+      env:
+        REPOSITORY: ${{ inputs.repository }}
+        REF: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+
+        SOURCE_DIR="$RUNNER_TEMP/skript-minestom-source"
+        SERVER_DIR="$RUNNER_TEMP/skript-minestom"
+
+        if [ "$REPOSITORY" = "" ]; then
+          echo "::error::Repository URL cannot be empty"
+          exit 1
+        fi
+
+        git clone --recurse-submodules "$REPOSITORY" "$SOURCE_DIR"
+
+        cd "$SOURCE_DIR"
+
+        if [ -n "$REF" ]; then
+          git fetch origin "$REF"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive
+        fi
+
+        chmod +x ./gradlew
+        ./gradlew --no-daemon build
+
+        mkdir -p "$SERVER_DIR"
+
+        mapfile -t JARS < <(
+          find build/libs -maxdepth 1 -type f \
+            -name 'skript-minestom*.jar' \
+            ! -name '*-sources.jar' \
+            ! -name '*-javadoc.jar' \
+            ! -name '*-plain.jar' \
+            | sort
+        )
+
+        if [ "${#JARS[@]}" -ne 1 ]; then
+          echo "::error::Expected exactly one runnable Skript-Minestom JAR in build/libs; found ${#JARS[@]}"
+          find build/libs -maxdepth 1 -type f -name '*.jar' -print || true
+          exit 1
+        fi
+
+        cp "${JARS[0]}" "$SERVER_DIR/skript-minestom.jar"
+        echo "Built Skript-Minestom from $REPOSITORY"
+
+    - name: Validate mode
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+      run: |
+        if [ "$MODE" != "download" ] && [ "$MODE" != "build" ]; then
+          echo "::error::Invalid mode '$MODE'. Use 'download' or 'build'."
+          exit 1
+        fi
 
     - name: Prepare Skript and test scripts
       shell: bash
@@ -81,7 +156,6 @@ runs:
 
         mkdir -p "$SCRIPTS_DIR/tests" "$PLUGINS_DIR" "$SCRIPTS_DIR/0"
 
-        # Download independent dependencies concurrently.
         curl --fail --location --silent --show-error \
           "https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
           --output "$SCRIPTS_DIR/0/runtime-test-framework.sk" &
