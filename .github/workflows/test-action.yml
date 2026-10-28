@@ -22,6 +22,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - download
+          - build
+
+    name: Test (${{ matrix.mode }})
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,5 +62,6 @@ jobs:
       - name: Run Skript Minestom tests
         uses: ./
         with:
+          mode: ${{ matrix.mode }}
           version: latest
           test_script_directory: tests
