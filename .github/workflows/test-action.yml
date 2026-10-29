@@ -2,13 +2,34 @@ name: Test Skript Minestom Action
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'action.yml'
+      - 'run_tests.py'
+      - '.github/workflows/test-action.yml'
+      - 'tests/**'
   pull_request:
+    paths:
+      - 'action.yml'
+      - 'run_tests.py'
+      - '.github/workflows/test-action.yml'
+      - 'tests/**'
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - download
+          - build
+
+    name: Test (${{ matrix.mode }})
 
     steps:
       - name: Checkout
@@ -41,5 +62,6 @@ jobs:
       - name: Run Skript Minestom tests
         uses: ./
         with:
-          version: 1.0.0-alpha.49
+          mode: ${{ matrix.mode }}
+          version: latest
           test_script_directory: tests
