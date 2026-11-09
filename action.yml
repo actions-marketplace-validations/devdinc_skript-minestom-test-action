@@ -154,7 +154,7 @@ runs:
 
         mapfile -t JARS < <(
           find "$JAR_DIR" -maxdepth 1 -type f \
-            -name 'skript-minestom-*.jar' \
+            -name 'minestom-*-all.jar' \
             ! -name '*-sources.jar' \
             ! -name '*-javadoc.jar' \
             ! -name '*-plain.jar' \
