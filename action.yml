@@ -30,6 +30,16 @@ inputs:
     required: false
     default: '45s'
 
+  test_framework_url:
+    description: 'URL of the Skript runtime test framework script'
+    required: false
+    default: 'https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk'
+
+  skript_reflect_url:
+    description: 'URL of the Skript-Reflect addon JAR'
+    required: false
+    default: 'https://github.com/SkriptLang/skript-reflect/releases/download/v2.6.3/skript-reflect-2.6.3.jar'
+
 runs:
   using: 'composite'
   steps:
@@ -173,6 +183,8 @@ runs:
       shell: bash
       env:
         TEST_SCRIPT_DIRECTORY: ${{ inputs.test_script_directory }}
+        TEST_FRAMEWORK_URL: ${{ inputs.test_framework_url }}
+        SKRIPT_REFLECT_URL: ${{ inputs.skript_reflect_url }}
       run: |
         set -euo pipefail
 
@@ -194,13 +206,13 @@ runs:
         mkdir -p "$SCRIPTS_DIR/tests" "$PLUGINS_DIR" "$SCRIPTS_DIR/0"
 
         curl --fail --location --silent --show-error \
-          "https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk" \
+          "$TEST_FRAMEWORK_URL" \
           --output "$SCRIPTS_DIR/0/runtime-test-framework.sk" &
         FRAMEWORK_PID=$!
 
         curl --fail --location --silent --show-error \
-          "https://github.com/SkriptLang/skript-reflect/releases/download/v2.6.3/skript-reflect-2.6.3.jar" \
-          --output "$PLUGINS_DIR/skript-reflect-2.6.3.jar" &
+          "$SKRIPT_REFLECT_URL" \
+          --output "$PLUGINS_DIR/skript-reflect.jar" &
         REFLECT_PID=$!
 
         STATUS=0
