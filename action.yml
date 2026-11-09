@@ -33,7 +33,7 @@ inputs:
   test_framework_url:
     description: 'URL of the Skript runtime test framework script'
     required: false
-    default: 'https://raw.githubusercontent.com/devdinc/skripts/minestom/scripts/utils/runtime-test-framework/runtime-test-framework.sk'
+    default: 'https://raw.githubusercontent.com/devdinc/runtime-test-framework/main/src/runtime-test-framework.sk'
 
   skript_reflect_url:
     description: 'URL of the Skript-Reflect addon JAR'
